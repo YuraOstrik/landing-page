@@ -2,7 +2,7 @@
 
 const {src, dest} = require("gulp");
 const gulp = require("gulp");
-const autoprefixer = require("gulp-autoprefixer");
+const autoprefixer = require('autoprefixer').default || require('autoprefixer');
 const cssbeautify = require("gulp-cssbeautify");
 const removeComments = require('gulp-strip-css-comments');
 const rename = require("gulp-rename");
@@ -16,7 +16,7 @@ const notify = require("gulp-notify");
 const webpack = require('webpack');
 const webpackStream = require('webpack-stream');
 const browserSync = require("browser-sync").create();
-
+const postcss = require('gulp-postcss');
 
 /* Paths */
 const srcPath = 'src/';
@@ -78,21 +78,16 @@ function html(cb) {
 
 function css(cb) {
     return src(path.src.css, {base: srcPath + "assets/scss/"})
-        .pipe(plumber({
-            errorHandler : function(err) {
-                notify.onError({
-                    title:    "SCSS Error",
-                    message:  "Error: <%= error.message %>"
-                })(err);
-                this.emit('end');
-            }
-        }))
+        .pipe(plumber({ /* ... errorHandler ... */ }))
         .pipe(sass({
             includePaths: './node_modules/'
         }))
-        .pipe(autoprefixer({
-            cascade: true
-        }))
+        // ИСПРАВЛЕННОЕ МЕСТО: Оборачиваем autoprefixer в postcss
+        .pipe(postcss([
+            autoprefixer({
+                cascade: true
+            })
+        ]))
         .pipe(cssbeautify())
         .pipe(dest(path.build.css))
         .pipe(cssnano({
