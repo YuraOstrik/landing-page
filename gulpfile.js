@@ -2,21 +2,24 @@
 
 const {src, dest} = require("gulp");
 const gulp = require("gulp");
+// FIX 1: Безопасный импорт для autoprefixer (для работы с ESM-версиями 10+)
 const autoprefixer = require('autoprefixer').default || require('autoprefixer');
 const cssbeautify = require("gulp-cssbeautify");
-const removeComments = require('gulp-strip-css-comments');
+// FIX 2: Безопасный импорт для gulp-strip-css-comments
+const removeComments = require('gulp-strip-css-comments').default || require('gulp-strip-css-comments');
 const rename = require("gulp-rename");
 const sass = require("gulp-sass")(require("sass"));
 const cssnano = require("gulp-cssnano");
 const uglify = require("gulp-uglify");
 const plumber = require("gulp-plumber");
 const panini = require("panini");
-const del = require("del");
+// FIX 3: del. Мы предполагаем, что вы откатили версию del в package.json до v5.x.
+const del = require("del"); 
 const notify = require("gulp-notify");
 const webpack = require('webpack');
 const webpackStream = require('webpack-stream');
 const browserSync = require("browser-sync").create();
-const postcss = require('gulp-postcss');
+const postcss = require('gulp-postcss'); // gulp-postcss должен быть установлен (npm install)
 
 /* Paths */
 const srcPath = 'src/';
@@ -78,11 +81,19 @@ function html(cb) {
 
 function css(cb) {
     return src(path.src.css, {base: srcPath + "assets/scss/"})
-        .pipe(plumber({ /* ... errorHandler ... */ }))
+        .pipe(plumber({
+            errorHandler : function(err) {
+                notify.onError({
+                    title:      "SCSS Error",
+                    message:    "Error: <%= error.message %>"
+                })(err);
+                this.emit('end');
+            }
+        }))
         .pipe(sass({
             includePaths: './node_modules/'
         }))
-        // ИСПРАВЛЕННОЕ МЕСТО: Оборачиваем autoprefixer в postcss
+        // Использование autoprefixer через gulp-postcss для корректной работы
         .pipe(postcss([
             autoprefixer({
                 cascade: true
@@ -96,6 +107,7 @@ function css(cb) {
                 removeAll: true
             }
         }))
+        // Теперь removeComments() должен работать
         .pipe(removeComments())
         .pipe(rename({
             suffix: ".min",
@@ -112,8 +124,8 @@ function cssWatch(cb) {
         .pipe(plumber({
             errorHandler : function(err) {
                 notify.onError({
-                    title:    "SCSS Error",
-                    message:  "Error: <%= error.message %>"
+                    title:      "SCSS Error",
+                    message:    "Error: <%= error.message %>"
                 })(err);
                 this.emit('end');
             }
@@ -136,8 +148,8 @@ function js(cb) {
         .pipe(plumber({
             errorHandler : function(err) {
                 notify.onError({
-                    title:    "JS Error",
-                    message:  "Error: <%= error.message %>"
+                    title:      "JS Error",
+                    message:    "Error: <%= error.message %>"
                 })(err);
                 this.emit('end');
             }
@@ -159,8 +171,8 @@ function jsWatch(cb) {
         .pipe(plumber({
             errorHandler : function(err) {
                 notify.onError({
-                    title:    "JS Error",
-                    message:  "Error: <%= error.message %>"
+                    title:      "JS Error",
+                    message:    "Error: <%= error.message %>"
                 })(err);
                 this.emit('end');
             }
